@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#3b82f6">
+    <title>🚖 出租车记账</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 15px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 25px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4b5563;
+            margin-bottom: 6px;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            margin-top: 10px;
+        }
+        
+        .btn-danger {
+            background: #fee2e2;
+            color: #dc2626;
+            margin-top: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .stat-item {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .record-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .record-item {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .record-item:last-child {
+            border-bottom: none;
+        }
+        
+        .record-date {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .record-income {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .record-delete {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1f2937;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #9ca3af;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .calculated-field {
+            background: #f0fdf4;
+            border-color: #86efac !important;
+            color: #166534;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚖 出租车记账</h1>
+            <p>记录每天的工作收入</p>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="card">
+            <div class="card-title">📊 今日统计</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-days">0</div>
+                    <div class="stat-label">工作天数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-trips">0</div>
+                    <div class="stat-label">总趟数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-income">¥0</div>
+                    <div class="stat-label">总收入</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-net">¥0</div>
+                    <div class="stat-label">净收入</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 记账表单 -->
+        <div class="card">
+            <div class="card-title">📝 新增记录</div>
+            <form id="record-form">
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="date" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>开车时间</label>
+                        <input type="time" id="start-time" required>
+                    </div>
+                    <div class="form-group">
+                        <label>关车时间</label>
+                        <input type="time" id="end-time" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>趟数</label>
+                        <input type="number" id="trips" min="0" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>收入 (元)</label>
+                        <input type="number" id="income" min="0" step="0.01" placeholder="0.00" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>油费/电费 (元)</label>
+                        <input type="number" id="fuel" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>过路费 (元)</label>
+                        <input type="number" id="toll" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>净收入 (自动计算)</label>
+                    <input type="text" id="net-income" class="calculated-field" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="note" placeholder="特殊情况、天气、路况等..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">💾 保存记录</button>
+            </form>
+        </div>
+        
+        <!-- 记录列表 -->
+        <div class="card">
+            <div class="card-title">📋 最近记录</div>
+            <div class="record-list" id="record-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <p>还没有记录，开始记账吧！</p>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="exportData()">📤 导出 CSV</button>
+            <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清空所有数据</button>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // 初始化
+        let records = JSON.parse(localStorage.getItem('taxi-records')) || [];
+        
+        // 设置默认日期为今天
+        document.getElementById('date').valueAsDate = new Date();
+        
+        // 自动计算净收入
+        function calculateNetIncome() {
+            const income = parseFloat(document.getElementById('income').value) || 0;
+            const fuel = parseFloat(document.getElementById('fuel').value) || 0;
+            const toll = parseFloat(document.getElementById('toll').value) || 0;
+            const net = income - fuel - toll;
+            document.getElementById('net-income').value = net.toFixed(2);
+        }
+        
+        ['income', 'fuel', 'toll'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calculateNetIncome);
+        });
+        
+        // 保存记录
+        document.getElementById('record-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const record = {
+                id: Date.now(),
+                date: document.getElementById('date').value,
+                startTime: document.getElementById('start-time').value,
+                endTime: document.getElementById('end-time').value,
+                trips: parseInt(document.getElementById('trips').value) || 0,
+                income: parseFloat(document.getElementById('income').value) || 0,
+                fuel: parseFloat(document.getElementById('fuel').value) || 0,
+                toll: parseFloat(document.getElementById('toll').value) || 0,
+                netIncome: parseFloat(document.getElementById('net-income').value) || 0,
+                note: document.getElementById('note').value
+            };
+            
+            records.unshift(record);
+            localStorage.setItem('taxi-records', JSON.stringify(records));
+            
+            showToast('✅ 记录已保存');
+            this.reset();
+            document.getElementById('date').valueAsDate = new Date();
+            updateStats();
+            renderRecords();
+        });
+        
+        // 更新统计
+        function updateStats() {
+            const days = records.length;
+            const trips = records.reduce((sum, r) => sum + r.trips, 0);
+            const income = records.reduce((sum, r) => sum + r.income, 0);
+            const net = records.reduce((sum, r) => sum + r.netIncome, 0);
+            
+            document.getElementById('stat-days').textContent = days;
+            document.getElementById('stat-trips').textContent = trips;
+            document.getElementById('stat-income').textContent = '¥' + income.toFixed(0);
+            document.getElementById('stat-net').textContent = '¥' + net.toFixed(0);
+        }
+        
+ // 渲染记录列表
+function renderRecords() {
+    const list = document.getElementById('record-list');
+    
+    if (records.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <p>还没有记录，开始记账吧！</p>
+            </div>
+        `;
+        return;
+    }
+    
+    list.innerHTML = records.slice(0, 10).map(r => `
+        <div class="record-item">
+            <div>
+                <div class="record-date">${r.date}</div>
+                <div style="font-size:12px;color:#6b7280">
+                    ${r.startTime}-${r.endTime} | ${r.trips}趟
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div class="record-income">+¥${r.income.toFixed(0)}</div>
+                <button class="record-delete" onclick="deleteRecord(${r.id})">删除</button>
+            </div>
+        </div>
+    `).join('');
+}
+        
+        // 删除记录
+        function deleteRecord(id) {
+            if (confirm('确定要删除这条记录吗？')) {
+                records = records.filter(r => r.id !== id);
+                localStorage.setItem('taxi-records', JSON.stringify(records));
+                showToast('🗑️ 记录已删除');
+                updateStats();
+                renderRecords();
+            }
+        }
+        
+        // 清空所有数据
+        function clearAllData() {
+            if (confirm('⚠️ 确定要清空所有数据吗？此操作不可恢复！')) {
+                records = [];
+                localStorage.setItem('taxi-records', JSON.stringify(records));
+                showToast('🗑️ 所有数据已清空');
+                updateStats();
+                renderRecords();
+            }
+        }
+        
+        // 导出 CSV
+        function exportData() {
+            if (records.length === 0) {
+                showToast('📭 没有数据可导出');
+                return;
+            }
+            
+            const headers = ['日期', '开车时间', '关车时间', '趟数', '收入', '油费/电费', '过路费', '净收入', '备注'];
+            const rows = records.map(r => [
+                r.date,
+                r.startTime,
+                r.endTime,
+                r.trips,
+                r.income,
+                r.fuel,
+                r.toll,
+                r.netIncome,
+                r.note
+            ]);
+            
+            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `出租车记账_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            
+            showToast('📤 导出成功');
+        }
+        
+        // 提示框
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        // 初始化
+        updateStats();
+        renderRecords();
+    </script>
+</body>
+</html>
