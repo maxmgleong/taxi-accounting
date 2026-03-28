@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": 1774697504601,
+    "date": "2026-03-28",
+    "startTime": "00:05",
+    "endTime": "17:31",
+    "trips": 19,
+    "income": 199,
+    "fuel": 0,
+    "toll": 0,
+    "netIncome": 199,
+    "note": ""
+  }
+]
