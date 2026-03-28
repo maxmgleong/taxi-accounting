@@ -136,12 +136,6 @@
             margin-top: 10px;
         }
         
-        .btn-success {
-            background: #10b981;
-            color: white;
-            margin-top: 10px;
-        }
-        
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -261,41 +255,58 @@
             animation: pulse 1s infinite;
         }
         
-        .sync-dot.error {
-            background: #ef4444;
-        }
-        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
         
-        .login-section {
+        .setup-section {
             text-align: center;
             padding: 20px;
         }
         
-        .login-section input {
+        .setup-section input {
             width: 100%;
             padding: 12px;
             border: 2px solid #e5e7eb;
             border-radius: 10px;
             font-size: 14px;
             margin-bottom: 10px;
+            text-align: center;
         }
         
         .hidden {
             display: none;
         }
         
-        .sync-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
         }
         
-        .sync-buttons .btn {
-            flex: 1;
+        .info-box h4 {
+            color: #1e40af;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .info-box p {
+            color: #1e3a8a;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .bin-id-display {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -303,26 +314,13 @@
     <div class="container">
         <div class="header">
             <h1>🚖 出租车记账</h1>
-            <p>云端同步 · 多设备访问</p>
+            <p>云端同步 · 无需登录</p>
         </div>
         
-        <!-- 登录区域 -->
-        <div class="card" id="login-card">
-            <div class="card-title">🔐 GitHub 登录</div>
-            <div class="login-section">
-                <p style="margin-bottom:15px;color:#6b7280;font-size:14px">
-                    登录后数据会同步到 GitHub，任何设备都能查看
-                </p>
-                <input type="text" id="github-token" placeholder="输入 GitHub Token">
-                <button class="btn btn-primary" onclick="saveToken()">登录</button>
-                <p style="margin-top:15px;font-size:12px;color:#6b7280">
-                    <a href="https://github.com/settings/tokens/new" target="_blank" style="color:#667eea">获取 Token</a> | 
-                    <a href="#" onclick="showTokenHelp();return false;" style="color:#667eea">如何使用？</a>
-                </p>
-            </div>
-        </div>
+        <!-- 设置区域（已配置，隐藏） -->
+        <div class="card" id="setup-card" class="hidden" style="display:none">
         
-        <!-- 主应用区域（登录后显示） -->
+        <!-- 主应用区域 -->
         <div id="app-section" class="hidden">
             <!-- 同步状态 -->
             <div class="card">
@@ -330,9 +328,8 @@
                     <div class="sync-dot" id="sync-dot"></div>
                     <span id="sync-text">已同步到云端</span>
                 </div>
-                <div class="sync-buttons">
-                    <button class="btn btn-secondary" onclick="syncData()">🔄 立即同步</button>
-                    <button class="btn btn-secondary" onclick="logout()">退出登录</button>
+                <div style="font-size:12px;color:#6b7280;margin-top:8px">
+                    Bin ID: <span id="display-bin-id" style="font-family:monospace"></span>
                 </div>
             </div>
             
@@ -424,10 +421,8 @@
                         <p>还没有记录，开始记账吧！</p>
                     </div>
                 </div>
-                <div class="sync-buttons">
-                    <button class="btn btn-secondary" onclick="exportData()">📤 导出 CSV</button>
-                    <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清空所有数据</button>
-                </div>
+                <button class="btn btn-secondary" onclick="exportData()">📤 导出 CSV</button>
+                <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清空所有数据</button>
             </div>
         </div>
     </div>
@@ -436,54 +431,49 @@
     
     <script>
         // 配置
-        const GITHUB_OWNER = 'maxmgleong';
-        const GITHUB_REPO = 'taxi-accounting';
-        const DATA_FILE = 'data/records.json';
-        
-        // 状态
+        const JSONBIN_API_KEY = '$2a$10$P9mAhXm4YO1JZH8nEUE4Veh9niBY5RH4iBojSxkiCF.JS243MjqRm';
+        const DEFAULT_BIN_ID = '69c7dcf0ed015c742bc50240';
+        let binId = '';
         let records = [];
-        let githubToken = localStorage.getItem('github-token') || '';
         
         // 初始化
         document.getElementById('date').valueAsDate = new Date();
         
-        // 检查是否已登录
-        if (githubToken) {
-            document.getElementById('github-token').value = githubToken;
-            showApp();
-            loadData();
+        // 检查是否已有 Bin ID，没有则使用默认的
+        const savedBinId = localStorage.getItem('taxi-bin-id');
+        if (savedBinId) {
+            binId = savedBinId;
+        } else {
+            binId = DEFAULT_BIN_ID;
+            localStorage.setItem('taxi-bin-id', binId);
         }
+        showApp();
+        loadData();
         
-        // 保存 Token
-        function saveToken() {
-            const token = document.getElementById('github-token').value.trim();
-            if (!token) {
-                showToast('❌ 请输入 Token');
+        // 保存 Bin ID
+        function saveBinId() {
+            const id = document.getElementById('bin-id').value.trim();
+            if (!id) {
+                showToast('❌ 请输入 Bin ID');
                 return;
             }
-            githubToken = token;
-            localStorage.setItem('github-token', token);
+            binId = id;
+            localStorage.setItem('taxi-bin-id', id);
+            document.getElementById('display-bin-id').textContent = id;
             showApp();
             loadData();
-            showToast('✅ 登录成功');
+            showToast('✅ 设置成功');
+        }
+        
+        // 显示已有 Bin 输入框
+        function showExistingBin() {
+            document.getElementById('bin-id').focus();
         }
         
         // 显示应用
         function showApp() {
-            document.getElementById('login-card').classList.add('hidden');
+            document.getElementById('setup-card').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
-        }
-        
-        // 退出登录
-        function logout() {
-            if (confirm('确定要退出登录吗？数据仍会保存在云端，下次登录可恢复。')) {
-                githubToken = '';
-                localStorage.removeItem('github-token');
-                document.getElementById('github-token').value = '';
-                document.getElementById('login-card').classList.remove('hidden');
-                document.getElementById('app-section').classList.add('hidden');
-                showToast('👋 已退出登录');
-            }
         }
         
         // 设置同步状态
@@ -492,32 +482,29 @@
             const txt = document.getElementById('sync-text');
             dot.className = 'sync-dot';
             if (status === 'syncing') dot.classList.add('syncing');
-            if (status === 'error') dot.classList.add('error');
             txt.textContent = text;
         }
         
-        // 从 GitHub 加载数据
+        // 从 JSONBin 加载数据
         async function loadData() {
-            if (!githubToken) return;
+            if (!binId) return;
             
             try {
                 setSyncStatus('syncing', '正在从云端加载...');
-                const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_FILE}`, {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
                     headers: {
-                        'Authorization': `token ${githubToken}`,
-                        'Accept': 'application/vnd.github.v3+json'
+                        'X-Master-Key': '$2a$10$8pMxGdXXNt8N.zZqKqYYhOZGqJpXqKqYYhOZGqJpXqKqYYhOZGqJpX'
                     }
                 });
                 
                 if (response.ok) {
                     const data = await response.json();
-                    const content = atob(data.content);
-                    records = JSON.parse(content);
+                    records = data.record.records || [];
                     updateStats();
                     renderRecords();
                     setSyncStatus('success', `已同步 - ${records.length} 条记录`);
                 } else if (response.status === 404) {
-                    // 文件不存在，创建新数据
+                    // Bin 不存在，创建新数据
                     records = [];
                     await saveData();
                     setSyncStatus('success', '云端数据已初始化');
@@ -527,17 +514,15 @@
             } catch (e) {
                 console.error(e);
                 setSyncStatus('error', '同步失败，使用本地数据');
-                // 回退到本地存储
                 records = JSON.parse(localStorage.getItem('taxi-records')) || [];
                 updateStats();
                 renderRecords();
             }
         }
         
-        // 保存数据到 GitHub
+        // 保存数据到 JSONBin
         async function saveData() {
-            if (!githubToken) {
-                // 没有 Token，保存到本地
+            if (!binId) {
                 localStorage.setItem('taxi-records', JSON.stringify(records));
                 return;
             }
@@ -545,42 +530,17 @@
             try {
                 setSyncStatus('syncing', '正在同步到云端...');
                 
-                // 先获取当前文件的 SHA
-                let sha = null;
-                const getResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_FILE}`, {
-                    headers: {
-                        'Authorization': `token ${githubToken}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-                
-                if (getResponse.ok) {
-                    const getData = await getResponse.json();
-                    sha = getData.sha;
-                }
-                
-                // 准备数据
-                const content = btoa(unescape(encodeURIComponent(JSON.stringify(records, null, 2))));
-                const body = {
-                    message: 'Update taxi records ' + new Date().toISOString(),
-                    content: content
-                };
-                if (sha) body.sha = sha;
-                
-                // 确保 data 目录存在（GitHub 会自动创建）
-                const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_FILE}`, {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `token ${githubToken}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': '$2a$10$8pMxGdXXNt8N.zZqKqYYhOZGqJpXqKqYYhOZGqJpXqKqYYhOZGqJpX'
                     },
-                    body: JSON.stringify(body)
+                    body: JSON.stringify({ records: records })
                 });
                 
                 if (response.ok) {
                     setSyncStatus('success', '已同步到云端');
-                    // 也保存到本地作为备份
                     localStorage.setItem('taxi-records', JSON.stringify(records));
                 } else {
                     throw new Error('保存失败');
@@ -588,16 +548,9 @@
             } catch (e) {
                 console.error(e);
                 setSyncStatus('error', '同步失败');
-                // 保存到本地作为备份
                 localStorage.setItem('taxi-records', JSON.stringify(records));
                 showToast('⚠️ 云端同步失败，已保存到本地');
             }
-        }
-        
-        // 手动同步
-        async function syncData() {
-            await saveData();
-            await loadData();
         }
         
         // 自动计算净收入
@@ -631,8 +584,6 @@
             };
             
             records.unshift(record);
-            
-            // 保存到云端
             await saveData();
             
             showToast('✅ 记录已保存并同步');
@@ -743,20 +694,6 @@
             toast.textContent = message;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 2000);
-        }
-        
-        // Token 帮助
-        function showTokenHelp() {
-            alert(`获取 GitHub Token 步骤：
-
-1. 打开 https://github.com/settings/tokens/new
-2. Token name: 随意填（如 taxi-app）
-3. 勾选：repo（全部权限）
-4. 点击 Generate token
-5. 复制生成的 token（只显示一次！）
-6. 粘贴到上面的输入框
-
-⚠️ Token 只会在你浏览器本地保存，不会发送给任何人。`);
         }
         
         // 初始化
